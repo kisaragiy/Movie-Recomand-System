@@ -1,0 +1,134 @@
+server:
+  port: 9999
+
+spring:
+  application:
+    name: api-gateway
+  
+  # Redis配置 - 分布式限流
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 3000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+  
+  # Gateway路由配置
+  cloud:
+    gateway:
+      # 全局跨域配置
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowed-origin-patterns: "*"
+            allowed-methods: "*"
+            allowed-headers: "*"
+            allow-credentials: true
+            
+      # 路由规则
+      routes:
+        # 用户服务 (匹配实际的微服务路径)
+        - id: user-service
+          uri: lb://user-service
+          predicates:
+            - Path=/microservice/api/user/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10  # 令牌桶每秒填充平均速率
+                redis-rate-limiter.burstCapacity: 20  # 令牌桶总容量
+                key-resolver: "#{@ipKeyResolver}"
+            - name: CircuitBreaker
+              args:
+                name: user-service-cb
+                fallbackUri: forward:/fallback/user
+                
+        # 电影服务 (匹配实际的微服务路径)
+        - id: movie-service
+          uri: lb://movie-service
+          predicates:
+            - Path=/microservice/api/movie/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 20
+                redis-rate-limiter.burstCapacity: 40
+                key-resolver: "#{@ipKeyResolver}"
+                
+        # 推荐服务 (匹配实际的微服务路径)
+        - id: recommendation-service
+          uri: lb://recommendation-service
+          predicates:
+            - Path=/microservice/api/recommend/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 5
+                redis-rate-limiter.burstCapacity: 10
+                key-resolver: "#{@userKeyResolver}"
+            - name: CircuitBreaker
+              args:
+                name: recommend-service-cb
+                fallbackUri: forward:/fallback/recommend
+                
+        # 实时推荐服务
+        - id: realtime-service
+          uri: lb://realtime-service
+          predicates:
+            - Path=/api/realtime/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+                key-resolver: "#{@userKeyResolver}"
+                
+        # 数据分析服务
+        - id: analytics-service
+          uri: lb://analytics-service
+          predicates:
+            - Path=/api/analytics/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 2
+                redis-rate-limiter.burstCapacity: 5
+                key-resolver: "#{@adminKeyResolver}"
+
+# Eureka客户端配置
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 5
+    lease-expiration-duration-in-seconds: 15
+
+# 监控配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    gateway:
+      enabled: true
+    health:
+      show-details: always
+
+# JWT配置
+jwt:
+  secret: movie-recommendation-system-jwt-secret-key-2025
+  expiration: 86400000  # 24小时
+
+# 日志配置
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.web.reactive: DEBUG
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wEx"

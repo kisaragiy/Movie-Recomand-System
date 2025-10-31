@@ -1,0 +1,208 @@
+version: '3.8'
+
+services:
+  # 数据库服务
+  mysql:
+    image: mysql:8.0
+    container_name: movie-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-your_password}
+      MYSQL_DATABASE: ${DB_NAME:-moviesystem_db}
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./sql/movie_system.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - movie-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Redis缓存服务
+  redis:
+    image: redis:7-alpine
+    container_name: movie-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - movie-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 10s
+      retries: 5
+
+  # Eureka服务注册中心
+  eureka-server:
+    build:
+      context: ./eureka-server
+      dockerfile: Dockerfile
+    container_name: movie-eureka
+    restart: always
+    ports:
+      - "8761:8761"
+    networks:
+      - movie-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  # 配置中心
+  config-server:
+    build:
+      context: ./config-server
+      dockerfile: Dockerfile
+    container_name: movie-config
+    restart: always
+    ports:
+      - "8888:8888"
+    networks:
+      - movie-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka/
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
+      timeout: 10s
+      retries: 5
+
+  # API网关
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: movie-gateway
+    restart: always
+    ports:
+      - "9999:9999"
+    networks:
+      - movie-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka/
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9999/actuator/health"]
+      timeout: 10s
+      retries: 5
+
+  # 用户服务
+  user-service:
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    container_name: movie-user-service
+    restart: always
+    networks:
+      - movie-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_NAME=${DB_NAME:-moviesystem_db}
+      - DB_USERNAME=${DB_USERNAME:-root}
+      - DB_PASSWORD=${DB_PASSWORD:-your_password}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      timeout: 10s
+      retries: 5
+
+  # 电影服务
+  movie-service:
+    build:
+      context: ./movie-service
+      dockerfile: Dockerfile
+    container_name: movie-movie-service
+    restart: always
+    networks:
+      - movie-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_NAME=${DB_NAME:-moviesystem_db}
+      - DB_USERNAME=${DB_USERNAME:-root}
+      - DB_PASSWORD=${DB_PASSWORD:-your_password}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      timeout: 10s
+      retries: 5
+
+  # 推荐服务
+  recommendation-service:
+    build:
+      context: ./recommendation-service
+      dockerfile: Dockerfile
+    container_name: movie-recommendation-service
+    restart: always
+    networks:
+      - movie-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_NAME=${DB_NAME:-moviesystem_db}
+      - DB_USERNAME=${DB_USERNAME:-root}
+      - DB_PASSWORD=${DB_PASSWORD:-your_password}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/actuator/health"]
+      timeout: 10s
+      retries: 5
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  movie-network:
+    driver: bridge
