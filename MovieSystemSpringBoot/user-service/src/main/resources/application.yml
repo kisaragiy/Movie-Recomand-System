@@ -9,9 +9,9 @@ spring:
   
   # 数据库配置 - 与原系统共享，但使用独立连接池
   datasource:
-    url: jdbc:mysql://localhost:3306/moviesystem_db?useUnicode=true&characterEncoding=utf8&serverTimezone=GMT%2B8&useSSL=false&allowMultiQueries=true
+    url: jdbc:mysql://localhost:3306/moviesystemspringboot_db?useUnicode=true&characterEncoding=utf8&serverTimezone=GMT%2B8&useSSL=false&allowPublicKeyRetrieval=true&allowMultiQueries=true
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:your_password}
+    password: ${DB_PASSWORD:123456}
     driver-class-name: com.mysql.cj.jdbc.Driver
     # 连接池配置
     hikari:

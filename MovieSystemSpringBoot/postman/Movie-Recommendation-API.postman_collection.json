@@ -1,0 +1,88 @@
+{
+  "info": {
+    "name": "电影推荐系统-微服务",
+    "description": "与 scripts/run-api-tests.ps1 对齐的 Postman 用例",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "userBase", "value": "http://localhost:8082" },
+    { "key": "movieBase", "value": "http://localhost:8083" },
+    { "key": "recBase", "value": "http://localhost:8084" },
+    { "key": "eurekaBase", "value": "http://localhost:8761" }
+  ],
+  "item": [
+    {
+      "name": "01-健康检查",
+      "item": [
+        { "name": "Eureka Health", "request": { "method": "GET", "url": "{{eurekaBase}}/actuator/health" } },
+        { "name": "User Health", "request": { "method": "GET", "url": "{{userBase}}/microservice/api/user/health" } },
+        { "name": "Movie Health", "request": { "method": "GET", "url": "{{movieBase}}/microservice/api/movie/health" } },
+        { "name": "Recommend Health", "request": { "method": "GET", "url": "{{recBase}}/microservice/api/recommend/health" } }
+      ]
+    },
+    {
+      "name": "02-用户认证",
+      "item": [
+        {
+          "name": "检查用户名",
+          "request": { "method": "GET", "url": "{{userBase}}/microservice/api/user/check-username?uname=H011" }
+        },
+        {
+          "name": "登录",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"uname\":\"H011\",\"upass\":\"123\"}" },
+            "url": "{{userBase}}/microservice/api/user/login"
+          }
+        },
+        {
+          "name": "检查登录态",
+          "request": { "method": "GET", "url": "{{userBase}}/microservice/api/user/check" }
+        },
+        {
+          "name": "找回密码",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"uname\":\"H011\",\"tel\":\"15523658485\"}" },
+            "url": "{{userBase}}/microservice/api/user/forgot-password"
+          }
+        }
+      ]
+    },
+    {
+      "name": "03-电影管理",
+      "item": [
+        {
+          "name": "电影列表",
+          "request": {
+            "method": "GET",
+            "url": "{{movieBase}}/microservice/api/movie/admin/list?pageNum=1&pageSize=10"
+          }
+        },
+        {
+          "name": "电影详情",
+          "request": { "method": "GET", "url": "{{movieBase}}/microservice/api/movie/1" }
+        }
+      ]
+    },
+    {
+      "name": "04-推荐",
+      "item": [
+        {
+          "name": "混合推荐",
+          "request": { "method": "GET", "url": "{{recBase}}/microservice/api/recommend/hybrid?user_id=34" }
+        },
+        {
+          "name": "混合推荐详情",
+          "request": { "method": "GET", "url": "{{recBase}}/microservice/api/recommend/hybrid/detail?user_id=34" }
+        },
+        {
+          "name": "猜你喜欢",
+          "request": { "method": "GET", "url": "{{recBase}}/microservice/api/recommend/love?user_id=34" }
+        }
+      ]
+    }
+  ]
+}

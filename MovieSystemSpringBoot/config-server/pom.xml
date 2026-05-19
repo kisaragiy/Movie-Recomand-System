@@ -9,6 +9,7 @@
         <groupId>com.it.movie</groupId>
         <artifactId>movie-recommendation-microservices</artifactId>
         <version>1.0.0</version>
+        <relativePath>../pom-microservices.xml</relativePath>
     </parent>
 
     <artifactId>config-server</artifactId>

@@ -253,21 +253,8 @@ public class UserMicroserviceController {
             // 总用户数
             long totalUsers = userService.getUserCount(new HashMap<>());
             
-            // 活跃用户数
-            Map<String, Object> activeParams = new HashMap<>();
-            activeParams.put("status", "active");
-            long activeUsers = userService.getUserCount(activeParams);
-            
-            // VIP用户数
-            Map<String, Object> vipParams = new HashMap<>();
-            vipParams.put("membershipType", "VIP");
-            long vipUsers = userService.getUserCount(vipParams);
-            
             Map<String, Object> stats = new HashMap<>();
             stats.put("total", totalUsers);
-            stats.put("active", activeUsers);
-            stats.put("vip", vipUsers);
-            stats.put("inactive", totalUsers - activeUsers);
             stats.put("source", "microservice");
             
             result.put("data", 200);
