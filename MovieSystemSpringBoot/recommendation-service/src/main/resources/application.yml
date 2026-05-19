@@ -4,19 +4,24 @@ server:
 spring:
   application:
     name: recommendation-service
-  cloud:
-    config:
-      enabled: false
-  redis:
-    host: localhost
-    port: 6379
-    timeout: 3000ms
-    lettuce:
-      pool:
-        max-active: 8
-        max-idle: 8
-        min-idle: 0
-        max-wait: -1ms
+  datasource:
+    url: jdbc:mysql://localhost:3306/moviesystemspringboot_db?useUnicode=true&characterEncoding=utf8&serverTimezone=GMT%2B8&useSSL=false&allowPublicKeyRetrieval=true&allowMultiQueries=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 3000ms
+  cache:
+    type: redis
+    redis:
+      time-to-live: 300000
+
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
 
 eureka:
   client:
@@ -29,4 +34,4 @@ management:
   endpoints:
     web:
       exposure:
-        include: "*"
+        include: health,info

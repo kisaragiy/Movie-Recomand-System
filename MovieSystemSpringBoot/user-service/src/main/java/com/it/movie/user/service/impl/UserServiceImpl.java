@@ -33,8 +33,7 @@ public class UserServiceImpl implements UserService {
         // String encryptedPassword = DigestUtils.md5DigestAsHex(password.getBytes());
         
         User user = userMapper.login(username, password);
-        if (user != null && "active".equals(user.getStatus())) {
-            // 清除密码信息，避免返回给前端
+        if (user != null) {
             user.setUpass(null);
             return user;
         }
@@ -57,16 +56,9 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("邮箱已被使用");
         }
         
-        // 设置默认值
-        user.setAddtime(new Date());
-        user.setStatus("active");
-        user.setMembershipType("普通");
-        user.setMembershipActive(false);
-        user.setLevel(1);
-        user.setIsgly("否");
-        
-        // 密码加密（如果需要）
-        // user.setUpass(DigestUtils.md5DigestAsHex(user.getUpass().getBytes()));
+        if (user.getIsgly() == null) {
+            user.setIsgly("n");
+        }
         
         int result = userMapper.add(user);
         if (result > 0) {
@@ -213,25 +205,12 @@ public class UserServiceImpl implements UserService {
     
     @Override
     public boolean updateUserStatus(Integer userId, String status) {
-        if (userId == null || status == null) {
-            return false;
-        }
-        
-        return userMapper.updateStatus(userId, status) > 0;
+        return false;
     }
     
     @Override
     public boolean upgradeMembership(Integer userId, String membershipType, int months) {
-        if (userId == null || membershipType == null) {
-            return false;
-        }
-        
-        // 计算到期时间
-        Calendar calendar = Calendar.getInstance();
-        calendar.add(Calendar.MONTH, months);
-        Date expireDate = calendar.getTime();
-        
-        return userMapper.upgradeMembership(userId, membershipType, expireDate) > 0;
+        return false;
     }
     
     @Override
